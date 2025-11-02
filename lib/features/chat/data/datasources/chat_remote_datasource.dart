@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import '../models/chat_model.dart';
+import '../models/chat_room_model.dart';
 import '../../../../core/errors/exceptions.dart';
 
 abstract class ChatRemoteDataSource {
+  Stream<List<ChatRoomModel>> getChatRoomsStream(String userId);
+
   Future<void> sendMessage(MessageModel message);
 
   Stream<List<MessageModel>> getMessagesStream({
@@ -21,14 +23,35 @@ abstract class ChatRemoteDataSource {
     required String userId,
     required String otherUserId,
   });
-
-  Future<void> markMessageAsRead(String messageId);
 }
 
 class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
   final FirebaseFirestore firestore;
 
   ChatRemoteDataSourceImpl(this.firestore);
+
+  @override
+  Stream<List<ChatRoomModel>> getChatRoomsStream(String userId) {
+    try {
+      return firestore
+          .collection('chats')
+          .where('participants', arrayContains: userId)
+          .orderBy('lastMessageTime', descending: true)
+          .snapshots()
+          .map((snapshot) {
+            return snapshot.docs
+                .map(
+                  (doc) => ChatRoomModel.fromFirestore(
+                    doc: doc,
+                    currentUserId: userId,
+                  ),
+                )
+                .toList();
+          });
+    } catch (e) {
+      throw ServerException('Failed to get chat rooms: ${e.toString()}');
+    }
+  }
 
   @override
   Future<void> sendMessage(MessageModel message) async {
@@ -51,6 +74,9 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
         'participants': [message.senderId, message.receiverId],
         'lastMessage': message.content,
         'lastMessageTime': FieldValue.serverTimestamp(),
+        'otherUserName_${message.receiverId}': message.senderName,
+        'otherUserName_${message.senderId}':
+            'You', // Will be updated by receiver
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {
@@ -113,9 +139,7 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
         });
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Failed to send typing indicator: $e');
-      }
+      print('Failed to send typing indicator: $e');
     }
   }
 
@@ -143,17 +167,6 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
           });
     } catch (e) {
       return Stream.value(false);
-    }
-  }
-
-  @override
-  Future<void> markMessageAsRead(String messageId) async {
-    try {
-      // Implementation for read receipts
-    } catch (e) {
-      if (kDebugMode) {
-        print('Failed to mark message as read: $e');
-      }
     }
   }
 }

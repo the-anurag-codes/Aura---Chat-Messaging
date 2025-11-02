@@ -1,15 +1,34 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failure.dart';
 import '../../domain/entities/message_entity.dart';
+import '../../domain/entities/chat_room_entity.dart';
 import '../../domain/repositories/chat_repository.dart';
 import '../datasources/chat_remote_datasource.dart';
-import '../../../../core/errors/exceptions.dart';
 import '../models/chat_model.dart';
+import '../../../../core/errors/exceptions.dart';
 
 class ChatRepositoryImpl implements ChatRepository {
   final ChatRemoteDataSource remoteDataSource;
 
   ChatRepositoryImpl(this.remoteDataSource);
+
+  @override
+  Stream<Either<Failure, List<ChatRoomEntity>>> getChatRoomsStream(
+    String userId,
+  ) {
+    try {
+      return remoteDataSource
+          .getChatRoomsStream(userId)
+          .map((rooms) => Right<Failure, List<ChatRoomEntity>>(rooms))
+          .handleError((error) {
+            return Left<Failure, List<ChatRoomEntity>>(
+              ServerFailure(error.toString()),
+            );
+          });
+    } catch (e) {
+      return Stream.value(Left(ServerFailure(e.toString())));
+    }
+  }
 
   @override
   Future<Either<Failure, void>> sendMessage(MessageEntity message) async {
@@ -79,17 +98,5 @@ class ChatRepositoryImpl implements ChatRepository {
       userId: userId,
       otherUserId: otherUserId,
     );
-  }
-
-  @override
-  Future<Either<Failure, void>> markMessageAsRead({
-    required String messageId,
-  }) async {
-    try {
-      await remoteDataSource.markMessageAsRead(messageId);
-      return const Right(null);
-    } catch (e) {
-      return Left(ServerFailure(e.toString()));
-    }
   }
 }

@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/failure.dart';
 import '../repositories/chat_repository.dart';
+import '../../../../core/errors/failure.dart';
 
 class SendTypingIndicatorUseCase {
   final ChatRepository repository;

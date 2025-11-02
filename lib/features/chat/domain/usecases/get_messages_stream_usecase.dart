@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/failure.dart';
 import '../entities/message_entity.dart';
 import '../repositories/chat_repository.dart';
+import '../../../../core/errors/failure.dart';
 
 class GetMessagesStreamUseCase {
   final ChatRepository repository;
