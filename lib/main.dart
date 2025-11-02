@@ -10,6 +10,7 @@ import 'features/auth/presentation/bloc/auth_state.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/chat/presentation/bloc/chat_bloc.dart';
 import 'features/chat/presentation/bloc/chat_list_bloc.dart';
+import 'features/users/presentation/bloc/user_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,9 +36,10 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<ChatListBloc>(create: (context) => di.sl<ChatListBloc>()),
         BlocProvider<ChatBloc>(create: (context) => di.sl<ChatBloc>()),
+        BlocProvider<UsersBloc>(create: (context) => di.sl<UsersBloc>()),
       ],
       child: MaterialApp(
-        title: 'Talksy - Chat & Messaging',
+        title: 'Talksy',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
@@ -63,7 +65,21 @@ class AuthWrapper extends StatelessWidget {
         }
 
         // Loading state
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(
+                  'Loading...',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        );
       },
     );
   }
