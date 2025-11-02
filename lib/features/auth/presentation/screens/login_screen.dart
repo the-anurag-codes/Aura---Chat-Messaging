@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../chat/presentation/screens/chat_list_screen.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -50,6 +51,22 @@ class _LoginScreenState extends State<LoginScreen> {
                 backgroundColor: const Color(0xFFE94560),
               ),
             );
+          }
+
+          if (state.status == AuthStatus.authenticated) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Signed in successfully'),
+                backgroundColor: Color(0xFF00C853),
+                duration: Duration(milliseconds: 900),
+              ),
+            );
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const ChatListScreen()),
+              );
+            });
           }
         },
         builder: (context, state) {

@@ -6,7 +6,6 @@ import '../bloc/chat_list_bloc.dart';
 import '../bloc/chat_list_event.dart';
 import '../bloc/chat_list_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../domain/entities/chat_room_entity.dart';
 import 'chat_screen.dart';
@@ -96,7 +95,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: const Color(0xFF0084FF).withOpacity(0.1),
+              color: const Color(0xFF0084FF).withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -220,7 +219,7 @@ class _ChatListItem extends StatelessWidget {
       onTap: onTap,
       leading: CircleAvatar(
         radius: 28,
-        backgroundColor: const Color(0xFF0084FF).withOpacity(0.1),
+        backgroundColor: const Color(0xFF0084FF).withValues(alpha: 0.1),
         child: chatRoom.otherUserPhoto != null
             ? ClipOval(
                 child: Image.network(

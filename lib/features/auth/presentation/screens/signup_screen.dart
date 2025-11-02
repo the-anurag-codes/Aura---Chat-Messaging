@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../chat/presentation/screens/chat_list_screen.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -61,6 +62,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 backgroundColor: const Color(0xFFE94560),
               ),
             );
+          }
+
+          // On successful signup, show success toast and go to chat list
+          if (state.status == AuthStatus.authenticated) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Signed up successfully'),
+                backgroundColor: Color(0xFF00C853),
+                duration: Duration(milliseconds: 1200),
+              ),
+            );
+            // Navigate to ChatListScreen and remove sign-up screen from stack
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const ChatListScreen()),
+              );
+            });
           }
         },
         builder: (context, state) {

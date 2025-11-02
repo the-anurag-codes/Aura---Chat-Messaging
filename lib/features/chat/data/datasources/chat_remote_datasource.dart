@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import '../models/chat_model.dart';
 import '../models/chat_room_model.dart';
 import '../../../../core/errors/exceptions.dart';
@@ -139,7 +140,7 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
         });
       }
     } catch (e) {
-      print('Failed to send typing indicator: $e');
+      debugPrint('Failed to send typing indicator: $e');
     }
   }
 
