@@ -62,24 +62,42 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
         message.receiverId,
       );
 
-      // Add message to chat collection
-      await firestore
+      // First, ensure chat document exists
+      final chatDoc = await firestore.collection('chats').doc(chatId).get();
+
+      if (!chatDoc.exists) {
+        // Create chat document first
+        await firestore.collection('chats').doc(chatId).set({
+          'participants': [message.senderId, message.receiverId],
+          'createdAt': FieldValue.serverTimestamp(),
+          'lastMessageTime': FieldValue.serverTimestamp(),
+        });
+      }
+
+      // Add message with batch write for atomicity
+      final batch = firestore.batch();
+
+      // Add message
+      final messageRef = firestore
           .collection('chats')
           .doc(chatId)
           .collection('messages')
-          .doc(message.id)
-          .set(message.toFirestore());
+          .doc(message.id);
 
-      // Update chat metadata (last message, timestamp)
-      await firestore.collection('chats').doc(chatId).set({
+      batch.set(messageRef, message.toFirestore());
+
+      // Update chat metadata
+      final chatRef = firestore.collection('chats').doc(chatId);
+      batch.set(chatRef, {
         'participants': [message.senderId, message.receiverId],
         'lastMessage': message.content,
         'lastMessageTime': FieldValue.serverTimestamp(),
         'otherUserName_${message.receiverId}': message.senderName,
-        'otherUserName_${message.senderId}':
-            'You', // Will be updated by receiver
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+
+      // Commit batch
+      await batch.commit();
     } catch (e) {
       throw ServerException('Failed to send message: ${e.toString()}');
     }
