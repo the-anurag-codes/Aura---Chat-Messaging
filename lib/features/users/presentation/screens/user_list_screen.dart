@@ -7,14 +7,14 @@ import '../bloc/user_bloc.dart';
 import '../bloc/user_event.dart';
 import '../bloc/user_state.dart';
 
-class UsersListPage extends StatefulWidget {
-  const UsersListPage({super.key});
+class UsersListScreen extends StatefulWidget {
+  const UsersListScreen({super.key});
 
   @override
-  State<UsersListPage> createState() => _UsersListPageState();
+  State<UsersListScreen> createState() => _UsersListScreenState();
 }
 
-class _UsersListPageState extends State<UsersListPage> {
+class _UsersListScreenState extends State<UsersListScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   @override
