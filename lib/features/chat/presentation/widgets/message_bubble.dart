@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../domain/entities/message_entity.dart';
-import '../../../../core/theme/app_colors.dart';
 
 class MessageBubble extends StatelessWidget {
   final MessageEntity message;
@@ -15,95 +14,113 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: isSentByMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.7,
-        ),
-        decoration: BoxDecoration(
-          color: isSentByMe
-              ? AppColors.sentMessageBg
-              : AppColors.receivedMessageBg,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(20),
-            topRight: const Radius.circular(20),
-            bottomLeft: Radius.circular(isSentByMe ? 20 : 4),
-            bottomRight: Radius.circular(isSentByMe ? 4 : 20),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Show sender name for received messages
-            if (!isSentByMe) ...[
-              Text(
-                message.senderName,
-                style: TextStyle(
-                  fontSize: 12,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        mainAxisAlignment: isSentByMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isSentByMe) ...[
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: const Color(0xFF0084FF).withValues(alpha: 0.1),
+              child: Text(
+                message.senderName.isNotEmpty
+                    ? message.senderName[0].toUpperCase()
+                    : '?',
+                style: const TextStyle(
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+                  color: Color(0xFF0084FF),
                 ),
               ),
-              const SizedBox(height: 4),
-            ],
-
-            // Message content
-            Text(
-              message.content,
-              style: TextStyle(
-                fontSize: 15,
-                color: isSentByMe
-                    ? AppColors.sentMessageText
-                    : AppColors.receivedMessageText,
-              ),
             ),
-            const SizedBox(height: 4),
-
-            // Timestamp and status
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  DateFormat('HH:mm').format(message.timestamp),
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isSentByMe
-                        ? AppColors.sentMessageText.withValues(alpha: 0.7)
-                        : AppColors.receivedMessageText.withValues(alpha: 0.6),
-                  ),
-                ),
-                if (isSentByMe) ...[
-                  const SizedBox(width: 4),
-                  _buildStatusIcon(),
-                ],
-              ],
-            ),
+            const SizedBox(width: 8),
           ],
-        ),
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: isSentByMe
+                    ? const Color(0xFF0084FF)
+                    : Colors.grey.shade200,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(20),
+                  topRight: const Radius.circular(20),
+                  bottomLeft: Radius.circular(isSentByMe ? 20 : 4),
+                  bottomRight: Radius.circular(isSentByMe ? 4 : 20),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 5,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    message.content,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: isSentByMe ? Colors.white : Colors.black87,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        DateFormat('HH:mm').format(message.timestamp),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isSentByMe
+                              ? Colors.white.withValues(alpha: 0.7)
+                              : Colors.grey.shade600,
+                        ),
+                      ),
+                      if (isSentByMe) ...[
+                        const SizedBox(width: 4),
+                        _buildStatusIcon(),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isSentByMe) const SizedBox(width: 8),
+        ],
       ),
     );
   }
 
   Widget _buildStatusIcon() {
     switch (message.status) {
-      case MessageStatus.sending:
-        return const SizedBox(
-          width: 12,
-          height: 12,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
-          ),
-        );
       case MessageStatus.sent:
-        return const Icon(Icons.check, size: 14, color: Colors.white70);
+      case MessageStatus.sending:
+        return Icon(
+          Icons.check,
+          size: 14,
+          color: Colors.white.withValues(alpha: 0.7),
+        );
       case MessageStatus.delivered:
-        return const Icon(Icons.done_all, size: 14, color: Colors.white70);
+        return Icon(
+          Icons.done_all,
+          size: 14,
+          color: Colors.white.withValues(alpha: 0.7),
+        );
       case MessageStatus.read:
-        return const Icon(Icons.done_all, size: 14, color: Colors.blue);
+        return const Icon(
+          Icons.done_all,
+          size: 14,
+          color: Colors.lightBlueAccent,
+        );
       case MessageStatus.failed:
         return const Icon(Icons.error_outline, size: 14, color: Colors.red);
     }
