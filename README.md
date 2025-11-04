@@ -1,4 +1,4 @@
-# aura_chat_app
+# talksy
 
 A new Flutter project.
 

@@ -19,17 +19,21 @@ class ChatRoomModel extends ChatRoomEntity {
     final data = doc.data() as Map<String, dynamic>;
     final participants = List<String>.from(data['participants'] ?? []);
 
-    // Get the other user's ID
+    // Get the OTHER user's ID (not current user)
     final otherUserId = participants.firstWhere(
       (id) => id != currentUserId,
       orElse: () => '',
     );
 
+    // Get the OTHER user's name using their ID
+    final otherUserName = data['userName_$otherUserId'] ?? 'Unknown User';
+    // print('other $currentUserId $otherUserId $participants $otherUserName');
+
     return ChatRoomModel(
       id: doc.id,
       otherUserId: otherUserId,
-      otherUserName: data['otherUserName_$otherUserId'] ?? 'Unknown User',
-      otherUserPhoto: data['otherUserPhoto_$otherUserId'],
+      otherUserName: otherUserName,
+      otherUserPhoto: null,
       lastMessage: data['lastMessage'],
       lastMessageTime: data['lastMessageTime'] != null
           ? (data['lastMessageTime'] as Timestamp).toDate()

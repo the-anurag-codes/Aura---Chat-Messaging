@@ -1,7 +1,9 @@
-import 'package:aura_chat_app/features/chat/presentation/screens/chat_screen.dart';
+import 'package:talksy/features/chat/presentation/screens/chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../users/presentation/bloc/user_bloc.dart';
 import '../../../users/presentation/screens/user_list_screen.dart';
 import '../bloc/chat_bloc.dart';
@@ -31,93 +33,81 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Talksy',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state.status == AuthStatus.unauthenticated) {
+          // Navigate to login and remove all previous routes
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+              (route) => false,
+            );
+          });
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          centerTitle: false,
+          title: const Text(
+            'Talksy',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+          ),
+          elevation: 0,
+          actions: [
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'logout') {
+                  _showLogoutDialog(context);
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout, color: Color(0xFFE94560)),
+                      SizedBox(width: 12),
+                      Text(
+                        'Sign Out',
+                        style: TextStyle(color: Color(0xFFE94560)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              // TODO: Implement search
-            },
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'logout') {
-                _showLogoutDialog(context);
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'profile',
-                child: Row(
-                  children: [
-                    Icon(Icons.person_outline),
-                    SizedBox(width: 12),
-                    Text('Profile'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'settings',
-                child: Row(
-                  children: [
-                    Icon(Icons.settings_outlined),
-                    SizedBox(width: 12),
-                    Text('Settings'),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, color: Color(0xFFE94560)),
-                    SizedBox(width: 12),
-                    Text(
-                      'Sign Out',
-                      style: TextStyle(color: Color(0xFFE94560)),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-      body: BlocBuilder<ChatListBloc, ChatListState>(
-        builder: (context, state) {
-          if (state.status == ChatListStatus.loading) {
-            return _buildLoadingState();
-          }
+        body: BlocBuilder<ChatListBloc, ChatListState>(
+          builder: (context, state) {
+            if (state.status == ChatListStatus.loading) {
+              return _buildLoadingState();
+            }
 
-          if (state.chatRooms.isEmpty) {
-            return _buildEmptyState(context);
-          }
+            if (state.chatRooms.isEmpty) {
+              return _buildEmptyState(context);
+            }
 
-          return ListView.separated(
-            itemCount: state.chatRooms.length,
-            separatorBuilder: (_, __) =>
-                Divider(height: 1, indent: 88, color: Colors.grey.shade200),
-            itemBuilder: (context, index) {
-              final chatRoom = state.chatRooms[index];
-              return _ChatListItem(
-                chatRoom: chatRoom,
-                onTap: () => _navigateToChat(context, chatRoom),
-              );
-            },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _navigateToUsersList(context),
-        backgroundColor: const Color(0xFF0084FF),
-        child: const Icon(Icons.edit_outlined),
+            return ListView.separated(
+              itemCount: state.chatRooms.length,
+              separatorBuilder: (_, __) =>
+                  Divider(height: 1, indent: 88, color: Colors.grey.shade200),
+              itemBuilder: (context, index) {
+                final chatRoom = state.chatRooms[index];
+                return _ChatListItem(
+                  chatRoom: chatRoom,
+                  onTap: () => _navigateToChat(context, chatRoom),
+                );
+              },
+            );
+          },
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _navigateToUsersList(context),
+          backgroundColor: const Color(0xFF0084FF),
+          child: const Icon(Icons.edit_outlined),
+        ),
       ),
     );
   }

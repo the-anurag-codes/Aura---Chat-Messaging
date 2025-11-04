@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
@@ -15,6 +16,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   final GetMessagesStreamUseCase getMessagesStreamUseCase;
   final SendTypingIndicatorUseCase sendTypingIndicatorUseCase;
   final GetTypingStreamUseCase getTypingStreamUseCase;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   StreamSubscription? _messagesSubscription;
   StreamSubscription? _typingSubscription;
@@ -40,32 +42,126 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ) async {
     emit(state.copyWith(status: ChatStatus.loading));
 
-    // Listen to messages
-    _messagesSubscription =
-        getMessagesStreamUseCase(
-          userId: event.userId,
-          otherUserId: event.otherUserId,
-        ).listen((result) {
-          result.fold(
-            (failure) {
+    try {
+      // IMPORTANT: Ensure chat document exists before setting up listeners
+      await _ensureChatExists(
+        userId: event.userId,
+        otherUserId: event.otherUserId,
+        userName: event.userName,
+        otherUserName: event.otherUserName,
+      );
+
+      // Small delay to ensure Firestore has processed the document creation
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // Listen to messages
+      _messagesSubscription?.cancel(); // Cancel any existing subscription
+      _messagesSubscription =
+          getMessagesStreamUseCase(
+            userId: event.userId,
+            otherUserId: event.otherUserId,
+          ).listen(
+            (result) {
+              result.fold(
+                (failure) {
+                  debugPrint('Failed to get messages: ${failure.message}');
+                  add(const ChatMessagesUpdated([]));
+                },
+                (messages) {
+                  add(ChatMessagesUpdated(messages));
+                },
+              );
+            },
+            onError: (error) {
+              debugPrint('Message stream error: $error');
               add(const ChatMessagesUpdated([]));
             },
-            (messages) {
-              add(ChatMessagesUpdated(messages));
+          );
+
+      // Listen to typing indicators
+      _typingSubscription?.cancel(); // Cancel any existing subscription
+      _typingSubscription =
+          getTypingStreamUseCase(
+            userId: event.userId,
+            otherUserId: event.otherUserId,
+          ).listen(
+            (isTyping) {
+              add(ChatTypingIndicatorReceived(isTyping));
+            },
+            onError: (error) {
+              debugPrint('Typing stream error: $error');
             },
           );
-        });
 
-    // Listen to typing indicators
-    _typingSubscription =
-        getTypingStreamUseCase(
-          userId: event.userId,
-          otherUserId: event.otherUserId,
-        ).listen((isTyping) {
-          add(ChatTypingIndicatorReceived(isTyping));
-        });
+      emit(state.copyWith(status: ChatStatus.loaded));
+    } catch (e) {
+      debugPrint('Error starting chat: $e');
+      emit(
+        state.copyWith(
+          status: ChatStatus.error,
+          errorMessage: 'Failed to initialize chat: ${e.toString()}',
+        ),
+      );
+    }
+  }
 
-    emit(state.copyWith(status: ChatStatus.loaded));
+  Future<void> _ensureChatExists({
+    required String userId,
+    required String otherUserId,
+    String? userName,
+    String? otherUserName,
+  }) async {
+    try {
+      final chatId = _getChatId(userId, otherUserId);
+      final chatRef = _firestore.collection('chats').doc(chatId);
+
+      // Use a transaction to ensure atomic operation
+      await _firestore.runTransaction((transaction) async {
+        final chatDoc = await transaction.get(chatRef);
+
+        if (!chatDoc.exists) {
+          // Create the chat document with proper structure
+          transaction.set(chatRef, {
+            'participants': [userId, otherUserId],
+            'createdAt': FieldValue.serverTimestamp(),
+            'lastMessageTime': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+            if (userName != null) 'userName_$userId': userName,
+            if (otherUserName != null) 'userName_$otherUserId': otherUserName,
+            'otherUserName_$userId': otherUserName ?? '',
+            'otherUserName_$otherUserId': userName ?? '',
+          });
+
+          debugPrint('Created new chat document: $chatId');
+        } else {
+          // Update user names if provided
+          Map<String, dynamic> updates = {
+            'updatedAt': FieldValue.serverTimestamp(),
+          };
+
+          if (userName != null) {
+            updates['userName_$userId'] = userName;
+            updates['otherUserName_$otherUserId'] = userName;
+          }
+
+          if (otherUserName != null) {
+            updates['userName_$otherUserId'] = otherUserName;
+            updates['otherUserName_$userId'] = otherUserName;
+          }
+
+          transaction.update(chatRef, updates);
+          debugPrint('Updated existing chat document: $chatId');
+        }
+      });
+    } catch (e) {
+      debugPrint('Error ensuring chat exists: $e');
+      rethrow;
+    }
+  }
+
+  String _getChatId(String userId1, String userId2) {
+    final ids = [userId1, userId2]..sort();
+    return '${ids[0]}_${ids[1]}';
   }
 
   void _onMessagesUpdated(ChatMessagesUpdated event, Emitter<ChatState> emit) {

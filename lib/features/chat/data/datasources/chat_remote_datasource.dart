@@ -62,19 +62,18 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
         message.receiverId,
       );
 
-      // First, ensure chat document exists
-      final chatDoc = await firestore.collection('chats').doc(chatId).get();
+      // Get receiver's info from users collection
+      final receiverDoc = await firestore
+          .collection('users')
+          .doc(message.receiverId)
+          .get();
 
-      if (!chatDoc.exists) {
-        // Create chat document first
-        await firestore.collection('chats').doc(chatId).set({
-          'participants': [message.senderId, message.receiverId],
-          'createdAt': FieldValue.serverTimestamp(),
-          'lastMessageTime': FieldValue.serverTimestamp(),
-        });
-      }
+      // FIX: Properly extract receiver's name
+      final receiverName = receiverDoc.exists
+          ? (receiverDoc.data()?['displayName'] ?? 'Unknown')
+          : 'Unknown';
 
-      // Add message with batch write for atomicity
+      // Batch write for atomicity
       final batch = firestore.batch();
 
       // Add message
@@ -86,20 +85,67 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
 
       batch.set(messageRef, message.toFirestore());
 
-      // Update chat metadata
+      // Update chat metadata with CORRECT user names
       final chatRef = firestore.collection('chats').doc(chatId);
       batch.set(chatRef, {
         'participants': [message.senderId, message.receiverId],
         'lastMessage': message.content,
         'lastMessageTime': FieldValue.serverTimestamp(),
-        'otherUserName_${message.receiverId}': message.senderName,
+        'userName_${message.senderId}': message.senderName,
+        'userName_${message.receiverId}': receiverName,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      // Commit batch
       await batch.commit();
     } catch (e) {
+      debugPrint('Failed to send message: $e');
       throw ServerException('Failed to send message: ${e.toString()}');
+    }
+  }
+
+  Future<void> ensureChatExists({
+    required String userId,
+    required String otherUserId,
+    String? userName,
+    String? otherUserName,
+  }) async {
+    try {
+      final chatId = MessageModel.getChatId(userId, otherUserId);
+      final chatRef = firestore.collection('chats').doc(chatId);
+
+      // Check if chat exists
+      final chatDoc = await chatRef.get();
+
+      if (!chatDoc.exists) {
+        // Get user names from users collection
+        final userDoc = await firestore.collection('users').doc(userId).get();
+        final otherUserDoc = await firestore
+            .collection('users')
+            .doc(otherUserId)
+            .get();
+
+        final fetchedUserName = userDoc.exists
+            ? (userDoc.data()?['displayName'] ?? 'Unknown')
+            : (userName ?? 'Unknown');
+
+        final fetchedOtherUserName = otherUserDoc.exists
+            ? (otherUserDoc.data()?['displayName'] ?? 'Unknown')
+            : (otherUserName ?? 'Unknown');
+
+        // Create the chat document with proper structure
+        await chatRef.set({
+          'participants': [userId, otherUserId],
+          'createdAt': FieldValue.serverTimestamp(),
+          'lastMessageTime': FieldValue.serverTimestamp(),
+          'lastMessage': null,
+          'updatedAt': FieldValue.serverTimestamp(),
+          'userName_$userId': fetchedUserName,
+          'userName_$otherUserId': fetchedOtherUserName,
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to ensure chat exists: $e');
+      throw ServerException('Failed to ensure chat exists: ${e.toString()}');
     }
   }
 
@@ -110,6 +156,9 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
   }) {
     try {
       final chatId = MessageModel.getChatId(userId, otherUserId);
+
+      // Ensure chat exists before setting up stream
+      ensureChatExists(userId: userId, otherUserId: otherUserId);
 
       return firestore
           .collection('chats')

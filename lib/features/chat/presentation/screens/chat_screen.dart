@@ -39,6 +39,8 @@ class _ChatScreenState extends State<ChatScreen> {
         ChatStarted(
           userId: authState.user!.id,
           otherUserId: widget.otherUserId,
+          userName: authState.user!.displayName,
+          otherUserName: widget.otherUserName,
         ),
       );
     }

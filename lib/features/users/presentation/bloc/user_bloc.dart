@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:aura_chat_app/features/users/presentation/bloc/user_event.dart';
-import 'package:aura_chat_app/features/users/presentation/bloc/user_state.dart';
+import 'package:talksy/features/users/presentation/bloc/user_event.dart';
+import 'package:talksy/features/users/presentation/bloc/user_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/usecases/get_all_users_usecase.dart';
 
