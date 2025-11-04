@@ -67,3 +67,45 @@ lib/
 - Use case pattern for business logic
 - Clear separation of concerns
 - Modular and testable code
+
+## Getting Started
+
+### Prerequisites
+
+- Flutter SDK (>=3.0.0)
+- Dart SDK
+- Firebase account
+- Android Studio / VS Code
+
+### Installation
+
+1. **Clone the repository**
+```bash
+git clone 
+cd chat_app
+```
+
+2. **Install dependencies**
+```bash
+flutter pub get
+```
+
+3. **Firebase Setup**
+
+Create a Firebase project and add your app:
+
+- Go to [Firebase Console](https://console.firebase.google.com/)
+- Create a new project
+- Add an Android/iOS app
+- Download `google-services.json` (Android) or `GoogleService-Info.plist` (iOS)
+- Place them in the respective directories:
+    - Android: `android/app/google-services.json`
+    - iOS: `ios/Runner/GoogleService-Info.plist`
+
+4. **Enable Firebase Authentication**
+- In Firebase Console, go to Authentication
+- Enable Email/Password sign-in method
+
+5. **Run the app**
+```bash
+flutter run
